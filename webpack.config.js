@@ -1,8 +1,8 @@
 module.exports = {
-  entry: './test/index.js',
+  entry: './dev/index.js',
   output: {
-    path: 'dist',
-    filename: 'liquid.js'
+    path: 'dev',
+    filename: 'bundled.js'
   },
   module: {
     loaders: [

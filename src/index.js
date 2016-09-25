@@ -1,9 +1,10 @@
-import {
-  spawn,
-  send
-} from './kernel'
+import * as Kernel from './Kernel'
+import * as Process from './Process'
+const {spawn, send} = Kernel
 
 export {
   spawn,
-  send
+  send,
+  Kernel,
+  Process
 }
