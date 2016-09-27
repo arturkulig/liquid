@@ -1,8 +1,11 @@
-export default function ProcessInfo (finished) {
+export default function ProcessInfo (pid, finished) {
+  this.pid = pid
   this.isAlive = true
   this.requests = []
   this.onExit = []
   this.onError = []
+
+  this.toJSON = () => `#${this.pid.valueOf()}`
 
   finished.then(
     result => ProcessInfo.raiseExit(this, result),
@@ -11,6 +14,8 @@ export default function ProcessInfo (finished) {
 }
 
 ProcessInfo.new = (...args) => new ProcessInfo(...args)
+
+ProcessInfo.pid = pInfo => pInfo.pid
 
 ProcessInfo.pushRequest = (pInfo, request) => {
   if (!pInfo.isAlive) return
@@ -30,24 +35,28 @@ ProcessInfo.getErrorHandlers = pInfo => pInfo.onError
 ProcessInfo.pushExitHandler = (pInfo, handler) => {
   if (!pInfo.isAlive) return
   const handlers = ProcessInfo.getExitHandlers(pInfo)
-  handlers && handlers.push(handler)
+  handlers &&
+  handlers.indexOf(handler) === -1 &&
+  handlers.push(handler)
 }
 ProcessInfo.pushErrorHandler = (pInfo, handler) => {
   if (!pInfo.isAlive) return
   const handlers = ProcessInfo.getErrorHandlers(pInfo)
-  handlers && handlers.push(handler)
+  handlers &&
+  handlers.indexOf(handler) === -1 &&
+  handlers.push(handler)
 }
 
 ProcessInfo.raiseExit = (pInfo, outcome) => {
   if (!pInfo.isAlive) return
   pInfo.isAlive = false
-  ProcessInfo.getExitHandlers(pInfo).forEach(reaction => reaction(outcome))
+  ProcessInfo.getExitHandlers(pInfo).forEach(reaction => reaction(outcome, pInfo))
   ProcessInfo.clear(pInfo)
 }
 ProcessInfo.raiseError = (pInfo, outcome) => {
   if (!pInfo.isAlive) return
   pInfo.isAlive = false
-  ProcessInfo.getErrorHandlers(pInfo).forEach(reaction => reaction(outcome))
+  ProcessInfo.getErrorHandlers(pInfo).forEach(reaction => reaction(outcome, pInfo))
   ProcessInfo.clear(pInfo)
 }
 

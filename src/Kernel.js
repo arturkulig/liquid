@@ -25,7 +25,7 @@ function spawn (func, name) {
     return [false, 'Liquid.Kernel.spawn Process name already taken']
   }
 
-  const pInfo = ProcessInfo.new(runProcess(func, pId))
+  const pInfo = ProcessInfo.new(pId, runProcess(func, pId))
 
   DEV && console.log('> spawn', pId.toString())
 
@@ -37,6 +37,7 @@ function spawn (func, name) {
   const processCleanup = () => {
     DEV && console.log('> cleanup', pId.toString())
     ProcessList.unregister(pId)
+    tryPushMessages()
   }
 
   ProcessInfo.pushExitHandler(pInfo, processCleanup)
@@ -67,7 +68,8 @@ function send (pid, message) {
     return [false, 'Liquid.Kernel.send Dead process']
   }
 
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
+    await timeout()
     messages.push([pid, message, msg => setTimeout(() => resolve(msg), 0)])
     tryPushMessages()
   })
