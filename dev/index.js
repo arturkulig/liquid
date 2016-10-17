@@ -1,4 +1,4 @@
-import {spawn, send} from '../src'
+import {spawn, send} from '../dist_node'
 
 function timeout (interval) {
   return new Promise((resolve) => setTimeout(resolve, interval))

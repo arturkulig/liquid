@@ -10,7 +10,7 @@ Pid.new = () => new Pid(++lastID)
 
 Pid.raw = (subject) => subject[PROC_NUM_FIELD]
 
-Pid.isPid = pidMaybe => (
+Pid.isPid = pidMaybe => !!(
   typeof pidMaybe === 'object' &&
   pidMaybe &&
   typeof Pid.raw(pidMaybe) === 'number' &&
@@ -19,7 +19,11 @@ Pid.isPid = pidMaybe => (
 
 Pid.fromJSON = (o) => Pid.new(o[PROC_NUM_FIELD])
 
-Pid.equals = (p1, p2) => Pid.raw(p1) === Pid.raw(p2)
+Pid.equals = (p1, p2) => (
+  Pid.isPid(p1) &&
+  Pid.isPid(p2) &&
+  Pid.raw(p1) === Pid.raw(p2)
+)
 
 Pid.prototype = {
   valueOf () { return Pid.raw(this) },

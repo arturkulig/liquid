@@ -8,3 +8,14 @@ export function timeout (interval = 0) {
     )
   )
 }
+
+export function race (races) {
+  return new Promise((resolve, reject) => {
+    Object.keys(races).forEach(
+      key => races[key].then(
+        result => resolve([key, result]),
+        reason => reject([key, reason])
+      )
+    )
+  })
+}

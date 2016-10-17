@@ -2,37 +2,47 @@ export default function ProcessInfo (pid, finished) {
   this.pid = pid
   this.isAlive = true
   this.requests = []
+  this.exitReason = 'normal'
+  this.exitResult = null
   this.onExit = []
   this.onError = []
 
   this.toJSON = () => `#${this.pid.valueOf()}`
 
-  finished.then(
-    result => ProcessInfo.raiseExit(this, result),
-    reason => ProcessInfo.raiseError(this, reason)
-  )
+  this.resolution = finished.then(
+    result => {
+      terminate(this, 'normal', result)
+    },
+    reason => {
+      terminate(this, 'error', reason)
+    }
+  ).then(() => [this.exitReason, this.exitResult])
 }
 
 ProcessInfo.new = (...args) => new ProcessInfo(...args)
 
 ProcessInfo.pid = pInfo => pInfo.pid
 
-ProcessInfo.pushRequest = (pInfo, request) => {
-  if (!pInfo.isAlive) return
-  pInfo.requests.push(request)
+ProcessInfo.pushRequestResolvers = (pInfo, [pushToReceive, rejectReceive]) => {
+  if (!pInfo.isAlive) return false
+  pInfo.requests.push([pushToReceive, rejectReceive])
+  return true
 }
 
-ProcessInfo.takeRequest = (pInfo) => {
-  if (!pInfo.isAlive) return
-  return pInfo.requests.splice(0, 1)[0]
+ProcessInfo.takeRequestResolvers = (pInfo) => {
+  if (!pInfo.isAlive) return false
+  if (pInfo.requests.length === 0) return false
+  const [pushToReceive] = pInfo.requests.splice(0, 1)
+  return pushToReceive
 }
 
-ProcessInfo.isAlive = pInfo => pInfo.isAlive
+ProcessInfo.isAlive = pInfo => pInfo && typeof pInfo === 'object' && pInfo.isAlive
 
 ProcessInfo.getExitHandlers = pInfo => pInfo.onExit
 ProcessInfo.getErrorHandlers = pInfo => pInfo.onError
 
 ProcessInfo.pushExitHandler = (pInfo, handler) => {
+  if (!pInfo) return
   if (!pInfo.isAlive) return
   const handlers = ProcessInfo.getExitHandlers(pInfo)
   handlers &&
@@ -40,6 +50,7 @@ ProcessInfo.pushExitHandler = (pInfo, handler) => {
   handlers.push(handler)
 }
 ProcessInfo.pushErrorHandler = (pInfo, handler) => {
+  if (!pInfo) return
   if (!pInfo.isAlive) return
   const handlers = ProcessInfo.getErrorHandlers(pInfo)
   handlers &&
@@ -47,21 +58,46 @@ ProcessInfo.pushErrorHandler = (pInfo, handler) => {
   handlers.push(handler)
 }
 
-ProcessInfo.raiseExit = (pInfo, outcome) => {
-  if (!pInfo.isAlive) return
-  pInfo.isAlive = false
-  ProcessInfo.getExitHandlers(pInfo).forEach(reaction => reaction(outcome, pInfo))
-  ProcessInfo.clear(pInfo)
-}
-ProcessInfo.raiseError = (pInfo, outcome) => {
-  if (!pInfo.isAlive) return
-  pInfo.isAlive = false
-  ProcessInfo.getErrorHandlers(pInfo).forEach(reaction => reaction(outcome, pInfo))
-  ProcessInfo.clear(pInfo)
+ProcessInfo.raiseExit = (pInfo, result) => {
+  terminate(pInfo, 'shutdown', result)
 }
 
-ProcessInfo.clear = pInfo => {
-  pInfo.requests.splice(0, pInfo.requests.length)
-  pInfo.onExit.splice(0, pInfo.onExit.length)
-  pInfo.onError.splice(0, pInfo.onError.length)
+ProcessInfo.raiseError = (pInfo, result) => {
+  terminate(pInfo, 'error', result)
 }
+
+ProcessInfo.resolution = pInfo => pInfo.resolution
+
+function terminate (pInfo, reason, result) {
+  if (!pInfo) {
+    return
+  }
+  if (!pInfo.isAlive) {
+    return
+  }
+
+  pInfo.isAlive = false
+
+  pInfo.exitReason = reason
+  pInfo.exitResult = result
+
+  pInfo.requests
+    .splice(0, pInfo.requests.length)
+    .forEach(
+      ([pushToReceive, rejectReceive]) => rejectReceive(reason)
+    )
+
+  switch (reason) {
+    case 'error': {
+      pInfo.onExit.splice(0, pInfo.onExit.length)
+      pInfo.onError.splice(0, pInfo.onError.length).forEach(reaction => reaction(pInfo, result))
+      break
+    }
+    case 'normal':
+    case 'shutdown': {
+      pInfo.onExit.splice(0, pInfo.onExit.length).forEach(reaction => reaction(pInfo, result))
+      pInfo.onError.splice(0, pInfo.onError.length)
+    }
+  }
+}
+

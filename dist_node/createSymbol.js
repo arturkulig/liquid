@@ -1,0 +1,1 @@
+'use strict';Object.defineProperty(exports,'__esModule',{value:true});exports.default=createSymbol;function createSymbol(name){return typeof Symbol!=='undefined'?Symbol(name):{toString:()=>name}}

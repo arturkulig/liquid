@@ -1,8 +1,13 @@
+const webpack = require('webpack');
+const ClosureCompiler = require('google-closure-compiler-js').webpack;
+
 module.exports = {
-  entry: './dev/index.js',
+  entry: './src/index.js',
   output: {
-    path: 'dev',
-    filename: 'bundled.js'
+    path: 'dist_web',
+    filename: 'liquid.js',
+    library: 'liquid',
+    libraryTarget: 'umd'
   },
   module: {
     loaders: [
@@ -12,5 +17,17 @@ module.exports = {
         loader: 'babel'
       }
     ]
-  }
+  },
+  plugins: [
+    new ClosureCompiler({
+      options: {
+        languageIn: 'ECMASCRIPT6',
+        languageOut: 'ECMASCRIPT5',
+        compilationLevel: 'ADVANCED',
+        warningLevel: 'VERBOSE',
+        processCommonJsModules: true
+      },
+    })
+  ]
 };
+

@@ -1,2 +1,2 @@
-requires:
-- Array.prototype.find
+# Liquid
+Like Elixir, but ordinary.

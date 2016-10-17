@@ -120,6 +120,11 @@ describe('kernel', () => {
   })
 
   describe('send informs about delivery', () => {
+    it('when no pid', async () => {
+      const [ack] = await send(null)
+      expect(ack).toBe(false)
+    })
+
     it('when delivers correctly', async () => {
       const [, pid] = spawn(
         async receive => {
@@ -132,13 +137,24 @@ describe('kernel', () => {
       expect(delivered).toBe(true)
     })
 
-    it('when fails to deliver to dead process', async () => {
+    it('when fails to deliver to sure dead process', async () => {
       const [, pid] = spawn(() => {})
       await timeout(0)
       const [delivered, msg] = await send(pid)
       expect(msg).toBe('Liquid.Kernel.send Dead process')
       expect(delivered).toBe(false)
     })
+
+    it('when fails to deliver to soon dead process', () => new Promise(resolve => {
+      spawn(async (receive, pid) => {
+        (async () => {
+          const [ack, reason] = await send(pid)
+          expect(ack).toBe(false)
+          expect(reason).toBe('Liquid.Kernel.send Dead process')
+          resolve()
+        })()
+      })
+    }))
   })
 })
 

@@ -2,9 +2,10 @@
   "name": "liquid",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist_node/index.js",
   "dependencies": {},
   "devDependencies": {
+    "babel-cli": "^6.16.0",
     "babel-core": "^6.14.0",
     "babel-eslint": "^6.1.2",
     "babel-jest": "^15.0.0",
@@ -21,17 +22,33 @@
     "eslint-plugin-import": "^1.10.0",
     "eslint-plugin-promise": "^1.3.2",
     "eslint-plugin-standard": "^1.3.2",
+    "google-closure-compiler-js": "^20160916.0.0",
     "jest-cli": "^15.1.1",
     "webpack": "^1.13.2"
   },
   "scripts": {
-    "test": "npm run lint; jest",
-    "dev": "webpack -d --config ./webpack.config.js; node dev/bundled.js",
-    "lint": "eslint --fix ./src/**/*.js && eslint --fix ./test/**/*.js"
+    "postinstall": "npm run build;",
+    "test": "npm run lint; NODE_ENV=test LIQUID_DEBUG=false jest --no-cache;",
+    "debug": "npm run lint; NODE_ENV=test LIQUID_DEBUG=true jest --no-cache;",
+    "dev": "npm run build:node; babel-node dev/index.js",
+    "build:web": "NODE_ENV=production webpack -d --config ./webpack.config.js;",
+    "build:node": "NODE_ENV=production babel src -d dist_node",
+    "build": "npm run lint; npm run build:web; npm run build:node;",
+    "lint": "eslint --fix ./src/**/*.js && eslint --fix ./test/**/*.js",
+    "lint:watch": "eslint ./src/**/*.js && eslint ./test/**/*.js; sleep 10; clear; npm run lint:watch"
   },
   "author": "",
   "license": "ISC",
   "jest": {
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist_node/",
+      "/dist_web/"
+    ],
+    "coverageReporters": [
+      "text"
+    ],
+    "collectCoverage": false
   }
 }

@@ -1,4 +1,20 @@
 {
+  "sourceMaps": "inline",
+  "minified": false,
+  "retainLines": true,
+  "env": {
+    "test": {
+      "sourceMaps": "inline",
+      "minified": true,
+      "retainLines": true
+    },
+    "production": {
+      "sourceMaps": false,
+      "minified": true,
+      "retainLines": false,
+      "ignore": ["*.spec.js"]
+    }
+  },
   "presets": [],
   "plugins": [
     "transform-es2015-destructuring",
