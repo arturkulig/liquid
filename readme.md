@@ -1,2 +1,4 @@
 # Liquid
-Like Elixir, but ordinary.
+Elixir-like environment in JS.
+
+WIP!
