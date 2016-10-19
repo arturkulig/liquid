@@ -78,11 +78,6 @@ describe('Supervisor', () => {
     await Supervisor.stop(sv)
 
     await send('stop_one_for_one')
-    await timeout(10)
-    expect({i3: i}).toEqual({i3: 3})
-
-    await send('stop_one_for_one')
-    await timeout(10)
-    expect({i4: i}).toEqual({i4: 3})
+    expect({i3: i}).toEqual({i3: 2})
   })
 })

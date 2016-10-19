@@ -83,12 +83,8 @@ describe('Supervisor', () => {
 
     await Supervisor.stop(sv)
 
-    const [sendOK2, sendDets2] = await send('B@o_4', 2)
-    expect({sendOK2, sendDets2}).toEqual({sendOK2: true, sendDets2: 'ok'})
-    expect({i2: i}).toEqual({i2: 4})
-
     const [sendOK3] = await send('B@o_4', 2)
     expect({sendOK3}).toEqual({sendOK3: false})
-    expect({i3: i}).toEqual({i3: 4})
+    expect({i3: i}).toEqual({i3: 2})
   })
 })

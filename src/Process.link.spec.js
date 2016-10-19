@@ -42,6 +42,8 @@ describe('Process', () => {
       const [breakerReceived] = await send(breakerPID)
       expect(breakerReceived).toBe(true)
 
+      await Process.endOf(breakerPID)
+
       const [brokenReceived] = await send(brokenPID)
       expect(brokenReceived).toBe(false)
       expect(sourceReceivingTimes).toBe(1)

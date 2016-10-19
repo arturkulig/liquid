@@ -3,6 +3,13 @@ import * as Process from './Process'
 import {externalConsole} from './Console'
 import Pid from './Pid'
 
+export async function exitGracefully (svPID, childrenRunning) {
+  while (childrenRunning.length > 0) {
+    await Process.exit(childrenRunning.splice(0, 1)[0])
+  }
+  await Process.endOf(svPID)
+}
+
 export async function runFormula (formula) {
   if (typeof formula === 'object') {
     return await runModule(formula)

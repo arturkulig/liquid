@@ -85,15 +85,15 @@ describe('Supervisor', () => {
     ])
 
     await send('C@o_4')
-    expect({i1: i}).toEqual({i1: 1})
+    await timeout()
+    await send('C@o_4')
+    await timeout()
+    expect({i1: i}).toEqual({i1: 2})
 
     await Supervisor.stop(sv)
 
-    await send('C@o_4')
-    expect({i2: i}).toEqual({i2: 2})
-    await timeout(10)
-
-    await send('C@o_4')
+    const [sendOK] = await send('C@o_4')
+    expect({sendOK}).toEqual({sendOK})
     expect({i2: i}).toEqual({i2: 2})
   })
 })

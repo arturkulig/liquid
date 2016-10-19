@@ -75,14 +75,16 @@ describe('kernel', () => {
       send(messageReceiver, messageToSend)
     }))
 
-    it('from inside of another process', () => new Promise(resolve => {
+    it('from inside of another process', () => new Promise((resolve, reject) => {
       const order = []
       const messageToSend = {msg: 'wsxedcrfv'}
 
       const [receiverReady, messageReceiver] = spawn(async receive => {
         order.push(1)
         const message = await receive()
-        expect(message).toBe(messageToSend)
+        try {
+          expect(message).toBe(messageToSend)
+        } catch (e) { reject(e) }
         order.push(3)
       })
 
@@ -95,7 +97,9 @@ describe('kernel', () => {
 
       const [finisherReady, finisher] = spawn(async receive => {
         await receive()
-        expect(order).toEqual([1, 2, 3, 4])
+        try {
+          expect(order).toEqual([1, 2, 3, 4])
+        } catch (e) { reject(e) }
         resolve()
       })
 

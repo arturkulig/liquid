@@ -26,28 +26,28 @@ function isAlive (pid) {
   return !!getPInfo(pid)
 }
 
-async function exit (pid, reason = 'shutdown') {
+function exit (pid, reason = 'shutdown') {
   const pInfo = getPInfo(pid)
-  if (!pInfo) return false
+  if (!pInfo) return Promise.resolve(false)
 
   switch (reason) {
     case 'shutdown': {
-      await ProcessInfo.raiseExit(pInfo)
+      ProcessInfo.raiseExit(pInfo)
       break
     }
     case 'error': {
-      await ProcessInfo.raiseError(pInfo)
+      ProcessInfo.raiseError(pInfo)
       break
     }
     default: {
-      return false
+      return Promise.resolve(false)
     }
   }
-  await ProcessInfo.resolution(pInfo)
-  return true
+  return ProcessInfo.resolution(pInfo)
+    .then(() => true)
 }
 
-async function endOf (pid) {
+function endOf (pid) {
   if (!pid) {
     return [null]
   }
@@ -57,7 +57,7 @@ async function endOf (pid) {
     return [null, pid]
   }
 
-  const [code, result] = await ProcessInfo.resolution(pInfo)
-  return [code, pid, result]
+  return ProcessInfo.resolution(pInfo)
+    .then(([code, result]) => [code, pid, result])
 }
 

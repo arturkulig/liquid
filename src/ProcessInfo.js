@@ -90,12 +90,12 @@ function terminate (pInfo, reason, result) {
   switch (reason) {
     case 'error': {
       pInfo.onExit.splice(0, pInfo.onExit.length)
-      pInfo.onError.splice(0, pInfo.onError.length).forEach(reaction => reaction(pInfo, result))
+      pInfo.onError.splice(0, pInfo.onError.length).forEach(reaction => reaction(pInfo, result, reason))
       break
     }
     case 'normal':
     case 'shutdown': {
-      pInfo.onExit.splice(0, pInfo.onExit.length).forEach(reaction => reaction(pInfo, result))
+      pInfo.onExit.splice(0, pInfo.onExit.length).forEach(reaction => reaction(pInfo, result, reason))
       pInfo.onError.splice(0, pInfo.onError.length)
     }
   }

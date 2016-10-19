@@ -2,7 +2,8 @@ import {spawn, send} from './Kernel'
 import * as Process from './Process'
 import {
   runFormula,
-  startLinkAll
+  startLinkAll,
+  exitGracefully
 } from './Supervisor.runners'
 
 export default async function oneForRest (childrenFormulas, name) {
@@ -38,8 +39,16 @@ export default async function oneForRest (childrenFormulas, name) {
             }
             break
           }
-          case 'supervisor_normal': return
-          case 'supervisor_error': throw new Error()
+          case 'supervisor_normal': {
+            const [ack] = eventArgs
+            exitGracefully(sv, childrenRunning).then(ack)
+            return
+          }
+          case 'supervisor_error': {
+            const [ack] = eventArgs
+            exitGracefully(sv, childrenRunning).then(ack)
+            throw new Error('Supervisor ending process')
+          }
         }
       }
     },

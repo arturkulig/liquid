@@ -34,14 +34,17 @@ export function link (sourcePID, targetPID) {
     debugConsole.log('Link new link', sourcePInfo.toJSON(), targetPInfo.toJSON())
     debugConsole.log('current links', terminateLinks.map(JSON.stringify))
 
-    ProcessInfo.resolution(sourcePInfo).then(([exitCode, exitResult]) => {
+    const chainReaction = (_, exitResult, exitReason) => {
       splice(
         terminateLinks,
         ([pInfo]) => pInfo === sourcePInfo
       ).forEach(
-        ([, targetPInfo]) => ProcessInfo.raiseExit(targetPInfo, [exitCode, exitResult])
+        ([, targetPInfo]) => ProcessInfo.raiseExit(targetPInfo, [exitReason, exitResult])
       )
-    })
+    }
+
+    ProcessInfo.pushExitHandler(sourcePInfo, chainReaction)
+    ProcessInfo.pushErrorHandler(sourcePInfo, chainReaction)
 
     return [true, 'ok', 'new']
   }

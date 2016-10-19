@@ -17,5 +17,5 @@ export async function stop (pid, reason = 'normal') {
     externalConsole.error(errorMsg)
     return [false, errorMsg]
   }
-  return await send(pid, [`supervisor_${reason}`])
+  return new Promise(resolve => send(pid, [`supervisor_${reason}`, resolve]))
 }

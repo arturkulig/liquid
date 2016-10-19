@@ -1,9 +1,7 @@
-import {
-  timeout
-} from './utils'
 import * as ProcessList from './ProcessList'
 import ProcessInfo from './ProcessInfo'
 import Pid from './Pid'
+import Runner from './Runner'
 import {debugConsole} from './Console'
 
 let messages = []
@@ -47,15 +45,15 @@ function spawn (func, name) {
   return [true, pId]
 }
 
-async function runProcess (func, pId) {
+function runProcess (func, pId) {
   debugConsole.log('> runProcess', pId.toString())
-
-  await timeout()
-
-  return func(
-    () => receive(pId),
-    pId
-  )
+  return new Promise((resolve, reject) => {
+    Runner.doNext(() => {
+      Promise.resolve().then(
+        () => func(() => receive(pId), pId)
+      ).then(resolve, reject)
+    })
+  })
 }
 
 function send (pid, message) {
@@ -70,20 +68,19 @@ function send (pid, message) {
   }
 
   return new Promise(async (resolve) => {
-    await timeout()
     messages.push([
       pid,
       message,
-      msg => setTimeout(() => resolve(msg), 0)
+      msg => Runner.doNext(resolve, [msg])
     ])
     tryPushMessages()
   })
 }
 
-async function receive (pid) {
+function receive (pid) {
   debugConsole.log('> receive', stringify(pid))
 
-  return await new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const pInfo = ProcessList.getByRef(pid)
     if (
       !pInfo ||
@@ -100,15 +97,21 @@ async function receive (pid) {
 let isPushingMessages = false
 
 function tryPushMessages () {
-  debugConsole.log('> tryPushMessages', messages.length)
-
-  if (!messages.length) return
-
   if (isPushingMessages) return
   isPushingMessages = true
 
+  Runner.doNext(tryPushMessagesDeffered, [], 3)
+}
+
+function tryPushMessagesDeffered () {
+  debugConsole.log('> tryPushMessages', messages.length)
+
+  if (!messages.length) {
+    isPushingMessages = false
+    return
+  }
+
   const unhandledMessages = []
-  const acksToSend = []
 
   while (true) {
     const takenEntries = messages.splice(0, 1)
@@ -119,13 +122,13 @@ function tryPushMessages () {
     const pInfo = ProcessList.getByRef(pid)
     if (!pInfo) {
       debugConsole.log('> tryPushMessages - process', stringify(pid), 'does not exist')
-      acknowledgeSend([false, 'Liquid.Kernel.send Dead process'])
+      Runner.doNext(acknowledgeSend, [[false, 'Liquid.Kernel.send Dead process']])
       continue
     }
 
     if (!ProcessInfo.isAlive(pInfo)) {
       debugConsole.log('> tryPushMessages - process', stringify(pid), 'dead')
-      acknowledgeSend([false, 'Liquid.Kernel.send Dead process'])
+      Runner.doNext(acknowledgeSend, [[false, 'Liquid.Kernel.send Dead process']])
       continue
     }
 
@@ -138,15 +141,13 @@ function tryPushMessages () {
 
     const [pushToReceive] = receiveResolvers
     debugConsole.log('> tryPushMessages - process', stringify(pid), 'receiving')
-    pushToReceive(message)
-    acksToSend.push(acknowledgeSend)
+    Runner.doNext(pushToReceive, [message], 2)
+    Runner.doNext(acknowledgeSend, [[true, 'ok']], 1)
   }
 
   debugConsole.log('> tryPushMessages, unhandled:', unhandledMessages.length)
   messages = unhandledMessages
   isPushingMessages = false
-
-  setTimeout(() => acksToSend.forEach(ack => ack([true, 'ok'])), 0)
 }
 
 function stringify (subject) {

@@ -14,7 +14,7 @@ export function start (handler = noop, name) {
       const [payload, resolve] = await receive()
 
       if (payload === STOP) {
-        setTimeout(() => resolve([true, STOP]), 0)
+        Process.endOf(pid).then(() => resolve([true, STOP]))
         return
       }
 
@@ -42,8 +42,12 @@ export function call (genServerPID, payload) {
   if (!Process.isAlive(genServerPID)) {
     return [false, 'Liquid.GenServer.call process is dead']
   }
-  return new Promise(resolve => {
-    send(genServerPID, [payload, resolve])
+  return new Promise(async resolve => {
+    try {
+      await send(genServerPID, [payload, resolve])
+    } catch (e) {
+      resolve([false, e])
+    }
   })
 }
 
