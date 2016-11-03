@@ -1,56 +1,29 @@
-import {spawn, send} from './Kernel'
+import {send} from './Kernel'
+import {externalConsole} from './Console'
 import * as Process from './Process'
 import {
-  runFormula,
-  startLinkAll,
-  exitGracefully
+  runFormula
 } from './Supervisor.runners'
 
-export default async function oneForAll (childrenFormulas, name) {
-  let childrenRunning
+export default async function oneForAll (svPID, childrenFormulas, childrenRunning, childPIDPosition, reason) {
+  const newChildrenRunning = []
 
-  const [ok, sv] = spawn(async (receive, sv) => {
-    while (true) {
-      const [event, ...eventArgs] = await receive()
-
-      switch (event) {
-        case 'normal':
-        case 'shutdown':
-        case 'error': {
-          for (let i = 0; i < childrenRunning.length; i++) {
-            if (childrenRunning[i]) {
-              await Process.demonitor(childrenRunning[i], sv)
-              await Process.exit(childrenRunning[i], event)
-              const [fOk, fNewPid] = await runFormula(childrenFormulas[i])
-              if (!fOk) {
-                send(sv, ['error', childrenRunning[i]])
-              } else {
-                childrenRunning[i] = fNewPid
-                Process.monitor(fNewPid, sv)
-              }
-            }
-          }
-          break
-        }
-        case 'supervisor_normal': {
-          const [ack] = eventArgs
-          exitGracefully(sv, childrenRunning).then(ack)
-          return
-        }
-        case 'supervisor_error': {
-          const [ack] = eventArgs
-          exitGracefully(sv, childrenRunning).then(ack)
-          throw new Error('Supervisor ending process')
-        }
-      }
+  for (let i = 0; i < childrenRunning.length; i++) {
+    if (!childrenRunning[i]) {
+      continue
     }
-  }, name)
-
-  if (!ok) {
-    return [ok, sv]
+    await Process.demonitor(childrenRunning[i], svPID)
+    await Process.exit(childrenRunning[i], 'shutdown')
+    const [fOk, fNewPid] = await runFormula(childrenFormulas[i])
+    if (fOk !== true) {
+      externalConsole.error('Liquid.Supervisor oneForAll could not restart child', childrenFormulas[i])
+      send(svPID, ['error', childrenRunning[i]])
+      newChildrenRunning[i] = childrenRunning[i]
+    } else {
+      Process.monitor(fNewPid, svPID)
+      newChildrenRunning[i] = fNewPid
+    }
   }
 
-  childrenRunning = await startLinkAll(childrenFormulas, sv)
-
-  return [ok, sv]
+  return newChildrenRunning
 }

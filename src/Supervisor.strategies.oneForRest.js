@@ -1,65 +1,29 @@
-import {spawn, send} from './Kernel'
+import {send} from './Kernel'
 import * as Process from './Process'
 import {
-  runFormula,
-  startLinkAll,
-  exitGracefully
+  runFormula
 } from './Supervisor.runners'
 
-export default async function oneForRest (childrenFormulas, name) {
-  let childrenRunning
+export default async function oneForRest (svPID, childrenFormulas, childrenRunning, childPIDPosition, reason) {
+  const newChildrenRunning = []
 
-  const [ok, sv] = spawn(
-    async (receive, sv) => {
-      while (true) {
-        const [event, ...eventArgs] = await receive()
+  for (let i = childPIDPosition; i < childrenRunning.length; i++) {
+    if (!childrenRunning[i]) {
+      continue
+    }
 
-        switch (event) {
-          case 'normal':
-          case 'shutdown':
-          case 'error': {
-            const [pid] = eventArgs
+    await Process.demonitor(childrenRunning[i], svPID)
+    await Process.exit(childrenRunning[i], 'shutdown')
+    const [ok, newProcPid] = await runFormula(childrenFormulas[i])
 
-            const pidPos = childrenRunning.indexOf(pid)
-            if (pidPos === -1) {
-              break
-            }
+    if (!ok) {
+      send(svPID, ['error', childrenRunning[i]])
+      newChildrenRunning[i] = childrenRunning[i]
+      continue
+    }
 
-            for (let i = pidPos; i < childrenRunning.length; i++) {
-              await Process.demonitor(childrenRunning[i], sv)
-              await Process.exit(childrenRunning[i])
-              const [ok, newProcPid] = await runFormula(childrenFormulas[i])
-              if (!ok) {
-                send(sv, ['error', pid])
-                break
-              }
-
-              childrenRunning[i] = newProcPid
-              Process.monitor(newProcPid, sv)
-            }
-            break
-          }
-          case 'supervisor_normal': {
-            const [ack] = eventArgs
-            exitGracefully(sv, childrenRunning).then(ack)
-            return
-          }
-          case 'supervisor_error': {
-            const [ack] = eventArgs
-            exitGracefully(sv, childrenRunning).then(ack)
-            throw new Error('Supervisor ending process')
-          }
-        }
-      }
-    },
-    name
-  )
-
-  if (!ok) {
-    return [ok, sv]
+    Process.monitor(newProcPid, svPID)
+    newChildrenRunning[i] = newProcPid
   }
-
-  childrenRunning = await startLinkAll(childrenFormulas, sv)
-
-  return [ok, sv]
+  return newChildrenRunning
 }

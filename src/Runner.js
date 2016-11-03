@@ -1,5 +1,3 @@
-import {debugConsole} from './Console'
-
 const Runner = {}
 export default Runner
 

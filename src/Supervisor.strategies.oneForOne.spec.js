@@ -80,4 +80,8 @@ describe('Supervisor', () => {
     await send('stop_one_for_one')
     expect({i3: i}).toEqual({i3: 2})
   })
+
+  it('counts children', async () => {
+
+  })
 })
