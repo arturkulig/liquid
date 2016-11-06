@@ -68,4 +68,8 @@ describe('Supervisor', () => {
     await send('starts with module children', 2)
     expect({i}).toEqual({i: 2})
   })
+
+  it('counts', async () => {
+    throw new Error('Not Implemented')
+  })
 })

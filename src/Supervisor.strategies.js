@@ -10,6 +10,6 @@ import simpleOneForOne from './Supervisor.strategies.simpleOneForOne'
 export const one_for_one = oneForOne
 export const one_for_all = oneForAll
 export const one_for_rest = oneForRest
-export const simple_one_for_one = simpleOneForOne
+//export const simple_one_for_one = simpleOneForOne
 
 /* eslint-enable camelcase */

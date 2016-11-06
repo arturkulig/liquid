@@ -14,11 +14,32 @@ export async function stop (pid, reason = 'normal') {
     externalConsole.error(errorMsg)
     return [false, errorMsg]
   }
-  return new Promise(resolve => send(pid, [`supervisor_${reason}`, resolve]))
+  return new Promise(resolve => send(pid, [`supervisor_exit_${reason}`, resolve]))
 }
 
 export async function countChildren (pid) {
+  return new Promise((resolve, reject) => {
+    try {
+      send(pid, ['supervisor_count', resolve])
+    } catch (e) {
+      reject(e)
+    }
+  })
+}
 
+export async function deleteChild (pid, child) {
+  //TODO
+  throw new Error('Not Implemented')
+}
+
+export async function restartChild (pid, child) {
+  //TODO
+  throw new Error('Not Implemented')
+}
+
+export async function startChild (pid, child) {
+  //TODO
+  throw new Error('Not Implemented')
 }
 
 export async function start (childrenFormulas, {strategy = 'one_for_one', name} = {}) {
@@ -46,19 +67,26 @@ export async function start (childrenFormulas, {strategy = 'one_for_one', name} 
             try {
               childrenRunning = await strategies[strategy](sv, childrenFormulas, childrenRunning, pidPos, event)
             } catch (e) {
-              debugConsole.error(e.stack || e.message || e)
+              debugConsole.error('Liquid.Supervisor error executing strategy', strategy, e.stack || e.message || e)
             }
             break
           }
-          case 'supervisor_normal': {
+          case 'supervisor_exit_normal': {
             const [ack] = eventArgs
             exitGracefully(sv, childrenRunning).then(ack)
             return
           }
-          case 'supervisor_error': {
+          case 'supervisor_exit_error': {
             const [ack] = eventArgs
             exitGracefully(sv, childrenRunning).then(ack)
             throw new Error('Supervisor ending process')
+          }
+          case 'supervisor_count': {
+            const [respond] = eventArgs
+            respond({
+              spec: childrenFormulas.length,
+              active: childrenRunning.filter(v => Process.isAlive(v)).length
+            })
           }
         }
       }
